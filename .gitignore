@@ -1,0 +1,10 @@
+# MetaTrader compiled files
+*.ex4
+*.ex5
+
+# MetaTrader logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
