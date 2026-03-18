@@ -3,8 +3,18 @@ import anthropic
 import json
 import os
 import requests
+import sqlite3
 from datetime import datetime, timezone
-from replit import db
+
+DB_PATH = "signals.db"
+
+def get_db():
+    con = sqlite3.connect(DB_PATH)
+    con.execute(
+        "CREATE TABLE IF NOT EXISTS signals "
+        "(key TEXT PRIMARY KEY, data TEXT NOT NULL)"
+    )
+    return con
 
 app = Flask(__name__)
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -127,7 +137,11 @@ def signal():
             "timestamp":  datetime.utcnow().isoformat() + "Z",
         }
         key = f"signal_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
-        db[key] = json.dumps({"request": data, "response": response})
+        with get_db() as con:
+            con.execute(
+                "INSERT OR REPLACE INTO signals (key, data) VALUES (?, ?)",
+                (key, json.dumps({"request": data, "response": response}))
+            )
         return jsonify(response)
     except json.JSONDecodeError as e:
         print(f"[signal] Claude returned invalid JSON: {e}")
@@ -138,11 +152,15 @@ def signal():
 
 @app.route("/history", methods=["GET"])
 def history():
-    keys = sorted([k for k in db.keys() if k.startswith("signal_")], reverse=True)[:100]
+    with get_db() as con:
+        rows = con.execute(
+            "SELECT data FROM signals WHERE key LIKE 'signal_%' "
+            "ORDER BY key DESC LIMIT 100"
+        ).fetchall()
     records = []
-    for k in keys:
+    for (data,) in rows:
         try:
-            records.append(json.loads(db[k]))
+            records.append(json.loads(data))
         except Exception:
             continue
     return jsonify(records)
