@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ForexAI Dashboard</title>
+  <style>
+    body { font-family: monospace; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th { background: #161b22; color: #8b949e; text-align: left; padding: 8px 12px; border-bottom: 1px solid #30363d; }
+    td { padding: 8px 12px; border-bottom: 1px solid #21262d; }
+    tr:hover td { background: #161b22; }
+    .buy { color: #3fb950; }
+    .sell { color: #f85149; }
+    .flat { color: #8b949e; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; }
+    .badge-yes { background: #1a4a1a; color: #3fb950; }
+    .badge-no  { background: #4a1a1a; color: #f85149; }
+    #status { color: #8b949e; font-size: 0.85em; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>ForexAI Signal Dashboard</h1>
+  <div id="status">Loading…</div>
+  <table id="signals">
+    <thead>
+      <tr>
+        <th>Time (UTC)</th>
+        <th>Symbol</th>
+        <th>Direction</th>
+        <th>TF</th>
+        <th>Conf</th>
+        <th>SL</th>
+        <th>TP</th>
+        <th>Trade?</th>
+        <th>Reasoning</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <script>
+    async function load() {
+      try {
+        const r = await fetch('/history');
+        const data = await r.json();
+        const tbody = document.getElementById('tbody');
+        tbody.innerHTML = '';
+        document.getElementById('status').textContent =
+          `${data.length} signals loaded — last refresh ${new Date().toUTCString()}`;
+        data.forEach(record => {
+          const resp = record.response || {};
+          const dir = (resp.direction || 'FLAT').toLowerCase();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${(resp.timestamp || '').replace('T', ' ').slice(0, 19)}</td>
+            <td>${resp.symbol || '-'}</td>
+            <td class="${dir}">${resp.direction || '-'}</td>
+            <td>${resp.timeframe || '-'}</td>
+            <td>${resp.confidence ?? '-'}%</td>
+            <td>${resp.sl_pips ?? '-'}</td>
+            <td>${resp.tp_pips ?? '-'}</td>
+            <td><span class="badge ${resp.trade ? 'badge-yes' : 'badge-no'}">${resp.trade ? 'YES' : 'NO'}</span></td>
+            <td style="max-width:320px;white-space:normal">${resp.reasoning || ''}</td>`;
+          tbody.appendChild(tr);
+        });
+      } catch(e) {
+        document.getElementById('status').textContent = 'Error loading history: ' + e.message;
+      }
+    }
+    load();
+    setInterval(load, 60000);
+  </script>
+</body>
+</html>
