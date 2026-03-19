@@ -3,74 +3,207 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ForexAI Dashboard</title>
+  <title>ForexAI v2 -- Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: monospace; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
-    h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th { background: #161b22; color: #8b949e; text-align: left; padding: 8px 12px; border-bottom: 1px solid #30363d; }
-    td { padding: 8px 12px; border-bottom: 1px solid #21262d; }
-    tr:hover td { background: #161b22; }
-    .buy { color: #3fb950; }
-    .sell { color: #f85149; }
-    .flat { color: #8b949e; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; }
-    .badge-yes { background: #1a4a1a; color: #3fb950; }
-    .badge-no  { background: #4a1a1a; color: #f85149; }
-    #status { color: #8b949e; font-size: 0.85em; margin-bottom: 10px; }
+    :root {
+      --bg:      #060a0f;
+      --surface: #0c1118;
+      --border:  #182030;
+      --muted:   #364860;
+      --text:    #c0cad8;
+      --heading: #e4ecf4;
+      --buy:     #3dd68c;
+      --sell:    #f75d5d;
+      --flat:    #58a6ff;
+      --gold:    #e8b84b;
+      --dim:     #7a92b0;
+      --mono:    'JetBrains Mono', monospace;
+      --sans:    'Syne', sans-serif;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font-family:var(--mono); font-size:12px; line-height:1.6; }
+
+    body::before {
+      content:''; position:fixed; inset:0;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);
+      pointer-events:none; z-index:9999;
+    }
+
+    header {
+      border-bottom:1px solid var(--border); padding:16px 24px;
+      display:flex; align-items:center; justify-content:space-between;
+      background:var(--surface); position:sticky; top:0; z-index:100;
+    }
+    .logo { font-family:var(--sans); font-size:17px; font-weight:800; color:var(--heading); letter-spacing:-.5px; }
+    .logo span { color:var(--gold); }
+    .logo sub { font-size:10px; color:var(--muted); font-weight:400; letter-spacing:1px; margin-left:4px; }
+
+    .dot { width:7px; height:7px; border-radius:50%; background:var(--buy); display:inline-block; margin-right:6px; animation:pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.25} }
+    #clock { font-size:10px; color:var(--muted); letter-spacing:1px; }
+
+    .stats-bar { display:flex; gap:1px; background:var(--border); border-bottom:1px solid var(--border); }
+    .stat-cell { flex:1; padding:12px 18px; background:var(--surface); }
+    .stat-label { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:4px; }
+    .stat-value { font-size:20px; font-weight:700; font-family:var(--sans); color:var(--heading); }
+    .stat-value.buy  { color:var(--buy); }
+    .stat-value.gold { color:var(--gold); }
+
+    .main { padding:20px 24px; max-width:1300px; margin:0 auto; }
+    .section-title { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+
+    #signals-container { display:flex; flex-direction:column; gap:8px; }
+
+    .signal-card {
+      background:var(--surface); border:1px solid var(--border); border-radius:5px;
+      padding:14px 18px; animation:fadeIn .3s ease;
+      border-left:3px solid var(--border);
+    }
+    .signal-card.buy-trade  { border-left-color:var(--buy); }
+    .signal-card.sell-trade { border-left-color:var(--sell); }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:translateY(0)} }
+
+    .card-row1 { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+    .card-symbol { font-family:var(--sans); font-weight:800; font-size:14px; color:var(--heading); }
+
+    .badge { display:inline-block; padding:2px 9px; border-radius:3px; font-size:10px; font-weight:700; letter-spacing:.8px; }
+    .badge-BUY  { background:rgba(61,214,140,.12); color:var(--buy);  border:1px solid rgba(61,214,140,.3); }
+    .badge-SELL { background:rgba(247,93,93,.12);  color:var(--sell); border:1px solid rgba(247,93,93,.3); }
+    .badge-FLAT { background:rgba(88,166,255,.08); color:var(--flat); border:1px solid rgba(88,166,255,.2); }
+
+    .badge-bias { display:inline-block; padding:2px 7px; border-radius:2px; font-size:9px; letter-spacing:.8px; }
+    .bias-BULLISH { background:rgba(61,214,140,.08); color:var(--buy); }
+    .bias-BEARISH { background:rgba(247,93,93,.08);  color:var(--sell); }
+    .bias-RANGING { background:rgba(88,166,255,.08); color:var(--flat); }
+
+    .conf-wrap { display:flex; align-items:center; gap:6px; margin-left:auto; }
+    .conf-bar { width:60px; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+    .conf-fill { height:100%; background:var(--gold); border-radius:2px; }
+    .conf-num { font-size:10px; color:var(--dim); }
+
+    .card-row2 { display:grid; grid-template-columns:repeat(4,auto); gap:16px; margin-bottom:8px; }
+    .price-cell { display:flex; flex-direction:column; gap:2px; }
+    .price-label { font-size:9px; color:var(--muted); letter-spacing:1px; }
+    .price-val { font-size:11px; color:var(--text); }
+
+    .card-row3 { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+    .tag { font-size:9px; color:var(--muted); background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:3px; padding:2px 7px; }
+    .tag span { color:var(--dim); }
+
+    .card-reasoning { font-size:10px; color:var(--muted); line-height:1.5; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; margin-bottom:6px; }
+    .card-time { font-size:9px; color:var(--border); }
+
+    .empty { text-align:center; padding:60px; color:var(--muted); }
+    #loading { text-align:center; padding:60px; color:var(--muted); letter-spacing:1px; }
+
+    @media(max-width:640px) {
+      .stats-bar { flex-wrap:wrap; }
+      .stat-cell { flex:1 1 45%; }
+      .card-row2 { grid-template-columns:repeat(2,auto); }
+    }
   </style>
 </head>
 <body>
-  <h1>ForexAI Signal Dashboard</h1>
-  <div id="status">Loading…</div>
-  <table id="signals">
-    <thead>
-      <tr>
-        <th>Time (UTC)</th>
-        <th>Symbol</th>
-        <th>Direction</th>
-        <th>TF</th>
-        <th>Conf</th>
-        <th>SL</th>
-        <th>TP</th>
-        <th>Trade?</th>
-        <th>Reasoning</th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
+  <header>
+    <div class="logo">Forex<span>AI</span><sub>v2</sub></div>
+    <div><span class="dot"></span><span id="clock"></span></div>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-cell"><div class="stat-label">Signals</div><div class="stat-value" id="s-total">--</div></div>
+    <div class="stat-cell"><div class="stat-label">Trades</div><div class="stat-value buy" id="s-trades">--</div></div>
+    <div class="stat-cell"><div class="stat-label">Avg Conf</div><div class="stat-value gold" id="s-conf">--</div></div>
+    <div class="stat-cell"><div class="stat-label">Last Signal</div><div class="stat-value" id="s-last" style="font-size:13px">--</div></div>
+  </div>
+
+  <div class="main">
+    <div class="section-title">Signal Feed -- auto-refreshes every 30s</div>
+    <div id="loading">Connecting to ForexAI...</div>
+    <div id="signals-container"></div>
+  </div>
 
   <script>
+    function relTime(iso) {
+      const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+      if (s < 60)    return s + 's ago';
+      if (s < 3600)  return Math.floor(s/60) + 'm ago';
+      if (s < 86400) return Math.floor(s/3600) + 'h ago';
+      return Math.floor(s/86400) + 'd ago';
+    }
+    function fmt(iso) {
+      if (!iso) return '--';
+      return new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    }
+    function p5(n) { return n ? parseFloat(n).toFixed(5) : '--'; }
+
+    function renderCards(records) {
+      document.getElementById('loading').style.display = 'none';
+      const c = document.getElementById('signals-container');
+      if (!records.length) {
+        c.innerHTML = '<div class="empty">No signals yet -- EA fires on each new M15 candle</div>';
+        return;
+      }
+
+      document.getElementById('s-total').textContent  = records.length;
+      document.getElementById('s-trades').textContent = records.filter(r=>r.trade).length;
+      const avgConf = Math.round(records.reduce((a,r)=>a+(r.confidence||0),0)/records.length);
+      document.getElementById('s-conf').textContent   = avgConf + '%';
+      document.getElementById('s-last').textContent   = records[0]?.timestamp ? relTime(records[0].timestamp) : '--';
+
+      c.innerHTML = records.map(r => {
+        const dir  = r.direction || 'FLAT';
+        const cls  = r.trade ? (dir === 'BUY' ? 'buy-trade' : 'sell-trade') : '';
+        const bias = r.d1_bias || '';
+        const conf = r.confidence || 0;
+        return `
+        <div class="signal-card ${cls}">
+          <div class="card-row1">
+            <span class="card-symbol">${r.symbol || 'NONE'}</span>
+            <span class="badge badge-${dir}">${dir}</span>
+            ${bias ? `<span class="badge-bias bias-${bias}">${bias}</span>` : ''}
+            ${r.h1_pattern && r.h1_pattern !== 'NONE' ? `<span class="tag"><span>H1</span> ${r.h1_pattern}</span>` : ''}
+            <div class="conf-wrap">
+              <div class="conf-bar"><div class="conf-fill" style="width:${conf}%"></div></div>
+              <span class="conf-num">${conf}%</span>
+            </div>
+          </div>
+          ${r.trade ? `
+          <div class="card-row2">
+            <div class="price-cell"><div class="price-label">ENTRY</div><div class="price-val">${p5(r.entry)}</div></div>
+            <div class="price-cell"><div class="price-label">SL</div><div class="price-val">${p5(r.sl)}</div></div>
+            <div class="price-cell"><div class="price-label">TP1 (1.5R)</div><div class="price-val">${p5(r.tp1)}</div></div>
+            <div class="price-cell"><div class="price-label">TP2 (3.0R)</div><div class="price-val">${p5(r.tp2)}</div></div>
+          </div>` : ''}
+          ${r.m15_trigger && r.m15_trigger !== 'NONE' ? `
+          <div class="card-row3">
+            <span class="tag"><span>M15</span> ${r.m15_trigger}</span>
+            ${r.h4_support    ? `<span class="tag"><span>H4 S</span> ${p5(r.h4_support)}</span>`    : ''}
+            ${r.h4_resistance ? `<span class="tag"><span>H4 R</span> ${p5(r.h4_resistance)}</span>` : ''}
+          </div>` : ''}
+          <div class="card-reasoning">${r.reasoning || ''}</div>
+          <div class="card-time">${fmt(r.timestamp)}</div>
+        </div>`;
+      }).join('');
+    }
+
     async function load() {
       try {
         const r = await fetch('/history');
-        const data = await r.json();
-        const tbody = document.getElementById('tbody');
-        tbody.innerHTML = '';
-        document.getElementById('status').textContent =
-          `${data.length} signals loaded — last refresh ${new Date().toUTCString()}`;
-        data.forEach(record => {
-          const resp = record.response || {};
-          const dir = (resp.direction || 'FLAT').toLowerCase();
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${(resp.timestamp || '').replace('T', ' ').slice(0, 19)}</td>
-            <td>${resp.symbol || '-'}</td>
-            <td class="${dir}">${resp.direction || '-'}</td>
-            <td>${resp.timeframe || '-'}</td>
-            <td>${resp.confidence ?? '-'}%</td>
-            <td>${resp.sl_pips ?? '-'}</td>
-            <td>${resp.tp_pips ?? '-'}</td>
-            <td><span class="badge ${resp.trade ? 'badge-yes' : 'badge-no'}">${resp.trade ? 'YES' : 'NO'}</span></td>
-            <td style="max-width:320px;white-space:normal">${resp.reasoning || ''}</td>`;
-          tbody.appendChild(tr);
-        });
+        renderCards(await r.json());
       } catch(e) {
-        document.getElementById('status').textContent = 'Error loading history: ' + e.message;
+        document.getElementById('loading').textContent = 'Connection error -- is Flask running?';
       }
     }
+
+    setInterval(() => {
+      const n = new Date();
+      document.getElementById('clock').textContent = n.toUTCString().replace('GMT','UTC');
+    }, 1000);
+
     load();
-    setInterval(load, 60000);
+    setInterval(load, 30000);
   </script>
 </body>
 </html>

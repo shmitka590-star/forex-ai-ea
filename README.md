@@ -1,28 +1,28 @@
-# ForexAI EA
+# ForexAI EA v2
 
 Autonomous Forex Expert Advisor powered by Claude AI.
 
-- **Backend**: Python / Flask on Replit
-- **Brain**: Claude analyses EURUSD, GBPUSD, USDJPY and picks the clearest setup
-- **News filter**: Skips trades during high-impact economic events (ForexFactory calendar)
-- **Execution**: MQL4/MQL5 EA places trades directly in MetaTrader
+## Architecture
 
-## Quick Start
+- MT4/MT5 EA sends multi-timeframe OHLC data every new M15 candle
+- Flask (localhost:5000) formats data and calls Claude
+- Claude performs top-down D1/H4/H1/M15 analysis
+- EA executes trade, manages partial close + trailing stop
 
-1. Deploy `main.py` on Replit, add `ANTHROPIC_API_KEY` secret
-1. Install `ForexAI_EA.mq5` (or `.mq4`) in MetaTrader
-1. Whitelist your Replit URL in MT Tools > Options > Expert Advisors
-1. Set `InpApiUrl` in EA parameters to your Replit URL
-1. Enable Auto Trading and attach EA to any chart
+## Signal Logic
 
-See `ea/SETUP.md` for full instructions.
+- D1 -> trend bias
+- H4 -> key support/resistance levels
+- H1 -> setup pattern (engulfing, pin bar, BoS)
+- M15 -> entry trigger on freshly opened candle
 
-## Stack
+## Risk Management
 
-| Layer  | Tech                         |
-|--------|------------------------------|
-| EA     | MQL5 / MQL4                  |
-| API    | Flask + Anthropic            |
-| DB     | Replit DB                    |
-| News   | ForexFactory calendar (free) |
-| Hosting| Replit Always On             |
+- Progressive lots: scales up on win streaks, down on losses
+- Partial close 50% at TP1 (1.5R), move SL to breakeven
+- Trail remaining position using H1 structure
+- Hard stop: 3 consecutive losses or 10% drawdown
+
+## Setup
+
+See ea/SETUP.md for full instructions.
