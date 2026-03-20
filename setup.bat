@@ -7,8 +7,8 @@ if exist forex-ai-ea (
     git clone https://github.com/shmitka590-star/forex-ai-ea.git
     cd forex-ai-ea
 )
-py -m pip install -r requirements.txt
+C:\Users\Family\AppData\Local\Programs\Python\Python314\python.exe -m pip install -r requirements.txt
 echo.
 echo ForexAI starting on http://localhost:5000
-py main.py
+C:\Users\Family\AppData\Local\Programs\Python\Python314\python.exe main.py
 pause
