@@ -254,7 +254,15 @@ void ParseAPIResponse(const string &json)
    int nStart = StringFind(json, "\"news_events\"");
    if (nStart >= 0) {
       int aS = StringFind(json, "[", nStart);
-      int aE = StringFind(json, "]", aS);
+      int aE = -1;
+      if (aS >= 0) {
+         int adep = 0;
+         for (int ii = aS; ii < StringLen(json); ii++) {
+            string ach = StringSubstr(json, ii, 1);
+            if (ach == "[") adep++;
+            else if (ach == "]") { adep--; if (adep == 0) { aE = ii; break; } }
+         }
+      }
       if (aS >= 0 && aE > aS) {
          string arr = StringSubstr(json, aS, aE - aS + 1);
          int pos = 0;
@@ -306,7 +314,15 @@ void ParseAPIResponse(const string &json)
 
    int poS = StringFind(json, "\"pending_orders\""); if (poS < 0) return;
    int paS = StringFind(json, "[", poS);
-   int paE = StringFind(json, "]", paS);
+   int paE = -1;
+   if (paS >= 0) {
+      int pdep = 0;
+      for (int ii = paS; ii < StringLen(json); ii++) {
+         string pch = StringSubstr(json, ii, 1);
+         if (pch == "[") pdep++;
+         else if (pch == "]") { pdep--; if (pdep == 0) { paE = ii; break; } }
+      }
+   }
    if (paS < 0 || paE <= paS) return;
    string poArr = StringSubstr(json, paS, paE - paS + 1);
    int    pPos  = 0;
@@ -323,20 +339,21 @@ void ParseAPIResponse(const string &json)
       string otype  = ParseStr(obj, "type");
       double oentry = ParseDbl(obj, "entry");
       double osl    = ParseDbl(obj, "sl");
+      double otp1   = ParseDbl(obj, "tp1");
       double otp2   = ParseDbl(obj, "tp2");
       double oslp   = ParseDbl(obj, "sl_pips");
       int    oexp   = (int)ParseDbl(obj, "expiry_hours"); if (oexp <= 0) oexp = 4;
       if (osym != "" && otype != "" && oentry > 0 && osl > 0
           && !PairNewsBlocked(osym) && TotalOpenAndPending() < InpMaxPositions
           && !HasPendingOrder(osym))
-         PlaceLimitOrder(osym, otype, oentry, osl, otp2, oslp, oexp);
+         PlaceLimitOrder(osym, otype, oentry, osl, otp1, otp2, oslp, oexp);
       pPos = objE + 1;
    }
 }
 
 //+------------------------------------------------------------------+
 void PlaceLimitOrder(const string &sym, const string &type,
-                     double entry, double sl, double tp2,
+                     double entry, double sl, double tp1, double tp2,
                      double slPips, int expiryH)
 {
    if (!SpreadOK(sym)) return;
@@ -347,9 +364,10 @@ void PlaceLimitOrder(const string &sym, const string &type,
    double rPct = GetRiskPct(); if (rPct <= 0) return;
    double lots = CalcLots(sym, slD, rPct);
    ENUM_ORDER_TYPE ot = (type == "BUY_LIMIT") ? ORDER_TYPE_BUY_LIMIT : ORDER_TYPE_SELL_LIMIT;
+   string comment = StringFormat("FAI_LIM_TP1_%.5f", tp1);
    bool ok = g_trade.OrderOpen(sym, ot, lots, 0, entry, sl, tp2,
-                               ORDER_TIME_SPECIFIED, TimeCurrent() + expiryH * 3600, "FAI_LIM");
-   if (ok) PrintFormat("[Limit] %s %s entry:%.5f lots:%.2f", type, sym, entry, lots);
+                               ORDER_TIME_SPECIFIED, TimeCurrent() + expiryH * 3600, comment);
+   if (ok) PrintFormat("[Limit] %s %s entry:%.5f lots:%.2f TP1:%.5f", type, sym, entry, lots, tp1);
    else    PrintFormat("[Limit] Failed %d", g_trade.ResultRetcode());
 }
 
@@ -418,6 +436,7 @@ void ManagePositions()
       double tp1    = 0;
       int    idx    = StringFind(cmt, "FAI_MOM_TP1_");
       if (idx >= 0) tp1 = StringToDouble(StringSubstr(cmt, idx + 12));
+      if (tp1 == 0) { idx = StringFind(cmt, "FAI_LIM_TP1_"); if (idx >= 0) tp1 = StringToDouble(StringSubstr(cmt, idx + 12)); }
       if (tp1 == 0) tp1 = ptype == POSITION_TYPE_BUY
                           ? entry + MathAbs(entry - curSL) * 1.5
                           : entry - MathAbs(entry - curSL) * 1.5;
@@ -533,7 +552,7 @@ bool PairNewsBlocked(const string &sym)
    string quote = StringSubstr(sym, 3, 3);
    for (int i = 0; i < g_newsCount; i++) {
       double m = g_news[i].minutes_away;
-      if (m > -60 && m < 30)
+      if (m >= -60 && m <= 30)
          if (g_news[i].currency == base || g_news[i].currency == quote) return true;
    }
    return false;
