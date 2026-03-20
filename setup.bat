@@ -11,4 +11,7 @@ C:\Users\Family\AppData\Local\Programs\Python\Python314\python.exe -m pip instal
 echo.
 echo ForexAI starting on http://localhost:5000
 C:\Users\Family\AppData\Local\Programs\Python\Python314\python.exe main.py
-pause
+if %errorlevel% neq 0 (
+    echo Flask failed to start. Press any key to see why.
+    pause
+)
